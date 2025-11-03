@@ -1,14 +1,14 @@
 package com.usa.attendancesystem.service;
 
 import com.usa.attendancesystem.dto.BatchDto;
-import com..attendancesystem.dto.CreateBatchRequest;
-import com.yourinstitute.attendancesystem.dto.CreateSubjectRequest;
-import com.yourinstitute.attendancesystem.dto.SubjectDto;
-import com.yourinstitute.attendancesystem.exception.DuplicateResourceException;
-import com.yourinstitute.attendancesystem.model.Batch;
-import com.yourinstitute.attendancesystem.model.Subject;
-import com.yourinstitute.attendancesystem.repository.BatchRepository;
-import com.yourinstitute.attendancesystem.repository.SubjectRepository;
+import com.usa.attendancesystem.dto.CreateBatchRequest;
+import com.usa.attendancesystem.dto.CreateSubjectRequest;
+import com.usa.attendancesystem.dto.SubjectDto;
+import com.usa.attendancesystem.exception.DuplicateResourceException;
+import com.usa.attendancesystem.model.Batch;
+import com.usa.attendancesystem.model.Subject;
+import com.usa.attendancesystem.repository.BatchRepository;
+import com.usa.attendancesystem.repository.SubjectRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

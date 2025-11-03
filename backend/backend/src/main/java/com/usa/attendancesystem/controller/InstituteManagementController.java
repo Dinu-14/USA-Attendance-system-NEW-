@@ -1,17 +1,23 @@
 package com.usa.attendancesystem.controller;
 
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.usa.attendancesystem.dto.BatchDto;
 import com.usa.attendancesystem.dto.CreateBatchRequest;
 import com.usa.attendancesystem.dto.CreateSubjectRequest;
 import com.usa.attendancesystem.dto.SubjectDto;
 import com.usa.attendancesystem.service.InstituteManagementService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * REST Controller for managing institute-level resources like Batches and Subjects.
