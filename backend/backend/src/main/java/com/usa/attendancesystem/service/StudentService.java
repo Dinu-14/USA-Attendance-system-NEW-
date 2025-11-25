@@ -1,6 +1,6 @@
 package com.usa.attendancesystem.service;
 
-import com. usa.attendancesystem.dto.*;
+import com.usa.attendancesystem.dto.*;
 import com.usa.attendancesystem.exception.DuplicateResourceException;
 import com.usa.attendancesystem.exception.ResourceNotFoundException;
 import com.usa.attendancesystem.model.Batch;
@@ -101,8 +101,11 @@ public class StudentService {
         studentRepository.save(student);
     }
 
-    // Helper method to convert Entity to DTO
-    private StudentDto mapToStudentDto(Student student) {
+    /**
+     * Helper method to convert a Student Entity to a StudentDto.
+     * FIX: Changed from 'private' to 'public' to allow other services (like AttendanceService) to use it.
+     */
+    public StudentDto mapToStudentDto(Student student) {
         BatchDto batchDto = new BatchDto(student.getBatch().getId(), student.getBatch().getBatchYear());
         Set<SubjectDto> subjectDtos = student.getSubjects().stream()
                 .map(subject -> new SubjectDto(subject.getId(), subject.getName()))
