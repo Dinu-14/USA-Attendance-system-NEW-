@@ -22,6 +22,9 @@ public class Student {
     @Column(name = "student_id_code", unique = true, nullable = false, length = 50)
     private String studentIdCode;
 
+    @Column(name = "index_number", unique = true, nullable = false, length = 10)
+    private String indexNumber;
+
     @Column(name = "full_name", nullable = false)
     private String fullName;
 

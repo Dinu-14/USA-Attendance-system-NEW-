@@ -4,9 +4,11 @@ import com.usa.attendancesystem.dto.*;
 import com.usa.attendancesystem.exception.DuplicateResourceException;
 import com.usa.attendancesystem.exception.ResourceNotFoundException;
 import com.usa.attendancesystem.model.AttendanceRecord;
+import com.usa.attendancesystem.model.AttendanceSession;
 import com.usa.attendancesystem.model.Student;
 import com.usa.attendancesystem.model.Subject;
 import com.usa.attendancesystem.repository.AttendanceRecordRepository;
+import com.usa.attendancesystem.repository.AttendanceSessionRepository;
 import com.usa.attendancesystem.repository.StudentRepository;
 import com.usa.attendancesystem.repository.SubjectRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ public class AttendanceService {
     private final StudentRepository studentRepository;
     private final SubjectRepository subjectRepository;
     private final AttendanceRecordRepository attendanceRepository;
+    private final AttendanceSessionRepository sessionRepository;
     private final SmsService smsService;
     private final StudentService studentService; // Re-use the mapper from StudentService
 
@@ -43,12 +46,12 @@ public class AttendanceService {
         if (!student.isActive()) {
             throw new IllegalStateException("Student account is not active.");
         }
-        
+
         // FIX: Changed '!=' to '.equals()' for safe object comparison.
         if (!student.getBatch().getId().equals(request.batchId())) {
             throw new IllegalStateException("Student is not enrolled in the selected batch.");
         }
-        
+
         boolean isEnrolledInSubject = student.getSubjects().stream().anyMatch(s -> s.getId().equals(request.subjectId()));
         if (!isEnrolledInSubject) {
             throw new IllegalStateException("Student is not enrolled in the selected subject.");
@@ -70,10 +73,61 @@ public class AttendanceService {
 
         // 5. Send SMS notification
         String checkInTime = ZonedDateTime.ofInstant(record.getAttendanceTimestamp(), ZoneId.systemDefault())
-                                          .format(DateTimeFormatter.ofPattern("hh:mm a"));
+                .format(DateTimeFormatter.ofPattern("hh:mm a"));
         String message = String.format(
                 "Dear Parent, %s has checked in for the %s class at %s.",
                 student.getFullName(), subject.getName(), checkInTime
+        );
+        smsService.sendSms(student.getParentPhone(), message);
+    }
+
+    @Transactional
+    public void markAttendanceByIndex(AttendanceMarkByIndexRequest request) {
+        // 1. Find and validate active session
+        AttendanceSession session = sessionRepository.findActiveSessionById(request.sessionId())
+                .orElseThrow(() -> new ResourceNotFoundException("Active session not found with ID: " + request.sessionId()));
+
+        // 2. Find student by index number
+        Student student = studentRepository.findByIndexNumber(request.indexNumber().trim().toUpperCase())
+                .orElseThrow(() -> new ResourceNotFoundException("Student with index number '" + request.indexNumber() + "' not found."));
+
+        // 3. Perform validations
+        if (!student.isActive()) {
+            throw new IllegalStateException("Student account is not active.");
+        }
+
+        // Validate student belongs to session batch
+        if (!student.getBatch().getId().equals(session.getBatch().getId())) {
+            throw new IllegalStateException("Student is not enrolled in this session's batch.");
+        }
+
+        // Validate student is enrolled in session subject
+        boolean isEnrolledInSubject = student.getSubjects().stream()
+                .anyMatch(s -> s.getId().equals(session.getSubject().getId()));
+        if (!isEnrolledInSubject) {
+            throw new IllegalStateException("Student is not enrolled in this session's subject.");
+        }
+
+        // 4. Check for duplicate attendance for this session date
+        Instant startOfDay = session.getSessionDate().atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant endOfDay = session.getSessionDate().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        if (attendanceRepository.hasStudentMarkedAttendanceToday(student.getId(), session.getSubject().getId(), startOfDay, endOfDay)) {
+            throw new DuplicateResourceException("Attendance already marked for this student today in " + session.getSubject().getName());
+        }
+
+        // 5. Create and save the record
+        AttendanceRecord record = new AttendanceRecord();
+        record.setStudent(student);
+        record.setSubject(session.getSubject());
+        record.setAttendanceTimestamp(Instant.now());
+        attendanceRepository.save(record);
+
+        // 6. Send enhanced SMS notification
+        String checkInTime = ZonedDateTime.ofInstant(record.getAttendanceTimestamp(), ZoneId.systemDefault())
+                .format(DateTimeFormatter.ofPattern("hh:mm a"));
+        String message = String.format(
+                "Dear Parent, your son %s has checked in for %s class at %s today. - Institute",
+                student.getFullName(), session.getSubject().getName(), checkInTime
         );
         smsService.sendSms(student.getParentPhone(), message);
     }
@@ -95,11 +149,11 @@ public class AttendanceService {
         // 3. Map present students to DTO, including check-in time
         List<PresentStudentDto> presentStudentDtos = presentRecords.stream()
                 .map(ar -> new PresentStudentDto(
-                        ar.getStudent().getId(),
-                        ar.getStudent().getStudentIdCode(),
-                        ar.getStudent().getFullName(),
-                        ar.getAttendanceTimestamp()
-                ))
+                ar.getStudent().getId(),
+                ar.getStudent().getStudentIdCode(),
+                ar.getStudent().getFullName(),
+                ar.getAttendanceTimestamp()
+        ))
                 .toList();
 
         // 4. Filter the enrolled list to find absent students and map to DTO

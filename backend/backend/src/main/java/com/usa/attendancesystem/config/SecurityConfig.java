@@ -37,14 +37,14 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> auth
                 // Public endpoints
-                .requestMatchers("/auth/**", "/attendance/mark").permitAll()
+                .requestMatchers("/auth/**", "/attendance/mark", "/attendance/mark-by-index").permitAll()
                 // Protected admin endpoints - note: Spring Security removes ROLE_ prefix
                 .requestMatchers("/admin/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_STAFF")
                 // All other requests must be authenticated
                 .anyRequest().authenticated()
-            )
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
